@@ -22,7 +22,7 @@ function isCompressed (bundle) {
   return false
 }
 
-function brotliCompressFile(file, options, minSize) {
+function brotliCompressFile(file, { options, minSize, filename }) {
   return new Promise(resolve => {
     fs.stat(file, (err, stats) => {
       if(err) {
@@ -36,7 +36,7 @@ function brotliCompressFile(file, options, minSize) {
       } else {
         fs.createReadStream(file)
           .pipe(createBrotliCompress(options))
-          .pipe(fs.createWriteStream(file + '.br'))
+          .pipe(fs.createWriteStream(filename(file)))
           .on('close', () => resolve())
       }
     })
@@ -49,6 +49,7 @@ export default function brotli(options = {}) {
     additional: [],
     minSize: 0,
     options: {},
+    filename: str => str + ".br"
   }, options)
   return {
     name: 'brotli',
@@ -60,7 +61,7 @@ export default function brotli(options = {}) {
       const bundlesToCompress = Object.keys(bundle).filter(file => !isCompressed(bundle[file]))
       const files = [...options.additional, ...bundlesToCompress.map(f => join(_dir, f))]
       for (const file of files) {
-        compressCollection.push(brotliCompressFile(file, options.options, options.minSize))
+        compressCollection.push(brotliCompressFile(file, options))
       }
       await Promise.all(compressCollection)
     }
